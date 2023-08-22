@@ -10,19 +10,29 @@ class Level:
 	
 	var style = {}
 	var tiles = []
+	var vertices = {}
 	@onready var game = get_node("/root/game")
 	
 	func _init(Style:={unmarked = Color.DARK_GRAY,marked = Color.LIGHT_GRAY,border = Color.WEB_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,}):
 		style = Style
 	
 	func _ready():
-		add_child(Tile.new(300,350, PackedVector2Array([Vector2(0,0),Vector2(25,100),Vector2(100,75),Vector2(150,0)]),{forced=ForcedCondition.new(ForcedCondition.forced_state.MARKED)}))
-		add_child(Tile.new(400,350, PackedVector2Array([Vector2(50,0),Vector2(0,75),Vector2(100,75),Vector2(150,0)]),{forced=ForcedCondition.new(ForcedCondition.forced_state.UNMARKED)}))
-		add_child(Tile.new(325,450, PackedVector2Array([Vector2(0,0),Vector2(0,75),Vector2(50,75),Vector2(75,-25)])))
-		add_child(Tile.new(400,450, PackedVector2Array([Vector2(0,-25),Vector2(-25,75),Vector2(50,100),Vector2(100,-25)])))
+		#add_child(Tile.new(300,350, PackedVector2Array([Vector2(0,0),Vector2(25,100),Vector2(100,75),Vector2(150,0)]),{forced=ForcedCondition.new(ForcedCondition.forced_state.MARKED)}))
+		#add_child(Tile.new(400,350, PackedVector2Array([Vector2(50,0),Vector2(0,75),Vector2(100,75),Vector2(150,0)]),{forced=ForcedCondition.new(ForcedCondition.forced_state.UNMARKED)}))
+		#add_child(Tile.new(325,450, PackedVector2Array([Vector2(0,0),Vector2(0,75),Vector2(50,75),Vector2(75,-25)])))
+		#add_child(Tile.new(400,450, PackedVector2Array([Vector2(0,-25),Vector2(-25,75),Vector2(50,100),Vector2(100,-25)])))
 		for x in range(4):
 			for y in range(4):
-				add_child(Tile.new(64*x+32, 64*y+32, Rectangle.new(64,64).shape))
+				add(Tile.new(64*x+32, 64*y+32, Rectangle.new(64,64).shape))
+		for tile in tiles:
+			tile.add_connections()
+		for tile in tiles:
+			tile.check_connections()
+		print(vertices)
+	
+	func add(tile:Tile) -> void:
+		tiles.append(tile)
+		add_child(tile)
 
 
 class Tile:
@@ -40,6 +50,9 @@ class Tile:
 	var pos
 	var addedpos = Vector2(0,0)
 	var shape
+	@onready var level = get_parent()
+	var id
+	var shared_vertices = []
 	
 	#https://www.reddit.com/r/godot/comments/b0r9l4/is_it_possible_to_get_the_bounding_box_of_a/
 	const MAX_COORD = pow(2,31)-1
@@ -73,8 +86,12 @@ class Tile:
 		border.joint_mode = Line2D.LINE_JOINT_ROUND
 		border.end_cap_mode = Line2D.LINE_CAP_ROUND
 		conditions = Conditions
+		for vertex in range(len(shape)):
+			shape[vertex] += pos
 	
 	func _ready():
+		# may not be consistent? idk
+		id = len(level.tiles)-1
 		border.default_color = style.border
 		self.mouse_entered.connect(set_hovered.bind(true))
 		self.mouse_exited.connect(set_hovered.bind(false))
@@ -112,6 +129,22 @@ class Tile:
 		else:
 			if conditions.has("forced"): display.color = style.forcedunmarked
 			else: display.color = style.unmarked
+	
+	func add_connections():
+		for vertex in shape:
+			if vertex in level.vertices:
+				level.vertices[vertex].append(id)
+			else:
+				level.vertices[vertex] = [id]
+	
+	func check_connections():
+		for vertex in shape:
+			shared_vertices.append(level.vertices[vertex].duplicate())
+			shared_vertices[-1].erase(id)
+	
+	func get_tiles_touching():
+		# uniquify shared_vertices
+		pass
 
 
 class Rectangle:
