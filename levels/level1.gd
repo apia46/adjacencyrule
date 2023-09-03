@@ -1,4 +1,6 @@
 extends "res://game.gd".Level
+static var levelName = "Begin"
+static var levelIcon = "1Γ"
 
 func add_tiles():
 	nextlevel = "level1b"
