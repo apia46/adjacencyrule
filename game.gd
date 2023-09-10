@@ -11,7 +11,7 @@ func load_level(toload):
 	level = load("res://levels/" + toload + ".gd").new()
 	add_child(level)
 	if !check:
-		check = MenuTile.new(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")})
+		check = MenuTile.new(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")},false)
 		add_child(check)
 		check.modifiers.text._load()
 	if toload == "map": check.fadeout()
@@ -92,7 +92,9 @@ class Level:
 		var shared_vertices = []
 		signal hover
 		var showing = false
+		var appears
 		
+		signal pressed
 		#https://www.reddit.com/r/godot/comments/b0r9l4/is_it_possible_to_get_the_bounding_box_of_a/
 		const MAX_COORD = pow(2,31)-1
 		const MIN_COORD = -MAX_COORD
@@ -112,7 +114,7 @@ class Level:
 			box = Rect2(min_vec,max_vec-min_vec)
 		
 		
-		func _init(X:int,Y:int,Shape:PackedVector2Array,Modifiers:={}):
+		func _init(X:int,Y:int,Shape:PackedVector2Array,Modifiers:={},Appears:=true):
 			self.add_child(collision)
 			self.add_child(display)
 			self.add_child(border)
@@ -129,6 +131,7 @@ class Level:
 				add_child(modifiers[modifier])
 			for vertex in range(len(shape)):
 				shape[vertex] += pos
+			appears = Appears
 		
 		func _ready():
 			# may not be consistent? idk
@@ -140,15 +143,16 @@ class Level:
 			if modifiers.has("forced"): marked = modifiers.forced.state == ForcedModifier.forced_state.MARKED
 			update_display()
 			on_change_my_poly()
-			pos.y += 300
+			pos.y += 500
 			modulate.a = 0
-			await get_tree().create_timer(randf_range(0.3,0.6)).timeout
-			fadein()
+			if appears:
+				await get_tree().create_timer(randf_range(0.3,0.6)).timeout
+				fadein()
 		
 		func fadein():
 			if showing: return
 			var tweenstart = get_tree().create_tween().set_parallel()
-			tweenstart.tween_property(self, "pos:y", pos.y-300, 1).set_trans(Tween.TRANS_EXPO)
+			tweenstart.tween_property(self, "pos:y", pos.y-500, 1).set_trans(Tween.TRANS_EXPO)
 			tweenstart.tween_property(self, "modulate:a", 1, 0.5).set_delay(0.5)
 			showing = true
 			return tweenstart
@@ -156,7 +160,7 @@ class Level:
 		func fadeout():
 			if !showing: return
 			var tweenend = get_tree().create_tween().set_parallel()
-			tweenend.tween_property(self, "pos:y", pos.y+300, 1).set_trans(Tween.TRANS_EXPO)
+			tweenend.tween_property(self, "pos:y", pos.y+500, 1).set_trans(Tween.TRANS_EXPO)
 			tweenend.tween_property(self, "modulate:a", 0, 0.5)
 			showing = false
 			return tweenend
@@ -186,7 +190,7 @@ class Level:
 			if Event.is_action_pressed("LClick"):
 				if !hovered: return
 				if modifiers.has("forced"): return
-				# call the signal here
+				pressed.emit()
 				marked = !marked
 				update_display()
 				level.changed_since_unhappy = true
@@ -223,8 +227,6 @@ class Level:
 class MenuTile:
 	extends Level.Tile
 	
-	signal pressed
-	
 	func load_style():
 		style = get_parent().level.style
 	
@@ -246,8 +248,16 @@ class MapTile:
 		var reference = load("res://levels/" + levelID + ".gd")
 		levelName = reference.levelName
 		levelIcon = reference.levelIcon
-		Modifiers.text = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
+		Modifiers.levelid = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
+		Modifiers.levelname = TextModifier.new(levelName,TextModifier.hover_set.HOVERED)
 		super(X,Y,Shape,Modifiers)
+	
+	func _input(Event):
+			if Event.is_action_pressed("LClick"):
+				if !hovered: return
+				if modifiers.has("forced"): return
+				# call the signal here
+				pass
 	
 
 
@@ -263,6 +273,9 @@ class Modifier:
 	
 	#no overrideable constants :sob:
 	static func condition(): return false
+	
+	func _init(Pos:=Vector2(0,0)):
+		pos = Pos
 	
 	func _process(_delta):
 		if !condition(): return
@@ -288,8 +301,9 @@ class ForcedModifier:
 	}
 	var state:forced_state
 	
-	func _init(State:forced_state):
+	func _init(State:forced_state, Pos:=Vector2(0,0)):
 		state = State
+		super(Pos)
 
 class TextModifier:
 	extends Modifier
@@ -299,7 +313,8 @@ class TextModifier:
 	enum hover_set {
 		ALWAYS,
 		HOVERED,
-		NOT_HOVERED
+		NOT_HOVERED,
+		CLICKED,
 	}
 	
 	func _ready():
@@ -321,9 +336,10 @@ class TextModifier:
 		display.size = tile.box.size
 		display.z_index = 1
 	
-	func _init(Text:String,HoverState:=hover_set.ALWAYS):
+	func _init(Text:String,HoverState:=hover_set.ALWAYS,Pos:=Vector2(0,0)):
 		text = Text
 		hover_state = HoverState
+		super(Pos)
 		load_display()
 	
 	func load_display():
@@ -345,10 +361,9 @@ class NumberModifier:
 	
 	static func condition(): return true
 	
-	func _init(Num:int):
+	func _init(Num:int,HoverState:=hover_set.ALWAYS,Pos:=Vector2(0,0)):
 		num = Num
-		text = str(num)
-		load_display()
+		super(str(Num),HoverState,Pos)
 	
 	func _load():
 		on_load()
