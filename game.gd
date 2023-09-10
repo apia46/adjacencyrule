@@ -2,6 +2,7 @@ extends Node
 
 var check
 var level
+var style
 
 func _ready():
 	randomize()
@@ -9,6 +10,7 @@ func _ready():
 
 func load_level(toload):
 	level = load("res://levels/" + toload + ".gd").new()
+	style = level.style
 	add_child(level)
 	if !check:
 		check = MenuTile.new(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")},false)
@@ -30,7 +32,7 @@ class Level:
 	@onready var game = get_node("/root/game")
 	var changed_since_unhappy = true
 	
-	func _init(Style:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,number = Color.WHITE,}):
+	func _init(Style:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,text = Color.WHITE,}):
 		style = Style
 	
 	func _ready():
@@ -51,11 +53,13 @@ class Level:
 		tiles.append(tile)
 		add_child(tile)
 	
-	func check():
+	func check(forcelevel:=""):
 		var okay = true
-		for tile in tiles:
-			for modifier in tile.modifiers:
-				if !tile.modifiers[modifier].check(): okay = false
+		if forcelevel == "":
+			for tile in tiles:
+				for modifier in tile.modifiers:
+					if !tile.modifiers[modifier].check(): okay = false
+		else: nextlevel = forcelevel
 		if okay:
 			game.check.pressed.disconnect(self.check)
 			for t in tiles:
@@ -242,23 +246,33 @@ class MapTile:
 	var levelID
 	var levelName
 	var levelIcon
+	var select = false
 	
 	func _init(X:int,Y:int,Shape:PackedVector2Array,Level:String,Modifiers:={}):
 		levelID = Level
 		var reference = load("res://levels/" + levelID + ".gd")
 		levelName = reference.levelName
 		levelIcon = reference.levelIcon
-		Modifiers.levelid = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
-		Modifiers.levelname = TextModifier.new(levelName,TextModifier.hover_set.HOVERED)
+		Modifiers.levelicon = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
+		Modifiers.levelname = TextModifier.new(levelName,TextModifier.hover_set.CLICKED,TextModifier.text_types.SMALL,Vector2(70,-5))
 		super(X,Y,Shape,Modifiers)
+		pressed.connect(modifiers.levelname.clicked)
+		hover.connect(self.hovercheck)
+	
+	func hovercheck(): if !hovered: select = false
 	
 	func _input(Event):
 			if Event.is_action_pressed("LClick"):
 				if !hovered: return
 				if modifiers.has("forced"): return
-				# call the signal here
-				pass
-	
+				if select:
+					level.check(levelID)
+				else:
+					pressed.emit()
+					marked = !marked
+					update_display()
+					level.changed_since_unhappy = true
+					select = true
 
 
 class Modifier:
@@ -310,11 +324,17 @@ class TextModifier:
 	
 	var text : String
 	var hover_state
+	var visible
 	enum hover_set {
 		ALWAYS,
 		HOVERED,
 		NOT_HOVERED,
 		CLICKED,
+	}
+	var text_type
+	enum text_types {
+		TILE,
+		SMALL,
 	}
 	
 	func _ready():
@@ -325,33 +345,49 @@ class TextModifier:
 		if (tile.hovered and hover_state == hover_set.HOVERED) or (!tile.hovered and hover_state == hover_set.NOT_HOVERED):
 			var tween = get_tree().create_tween()
 			tween.tween_property(display, "modulate:a", 1, 0.2)
-		elif (tile.hovered and hover_state == hover_set.NOT_HOVERED) or (!tile.hovered and hover_state == hover_set.HOVERED):
+			visible = true
+		elif (tile.hovered and hover_state == hover_set.NOT_HOVERED) or (!tile.hovered and hover_state == hover_set.HOVERED) or (visible == true and hover_state == hover_set.CLICKED and !tile.hovered):
 			var tween = get_tree().create_tween()
 			tween.tween_property(display, "modulate:a", 0, 0.2)
+			visible = false
 	
 	func _load():
 		on_load()
 	
+	func clicked():
+		if hover_state == hover_set.CLICKED and !visible:
+			display.modulate.a = 1
+			visible = true
+	
 	func on_load():
+		display.add_theme_color_override("font_color", level.style.text)
 		display.size = tile.box.size
 		display.z_index = 1
 	
-	func _init(Text:String,HoverState:=hover_set.ALWAYS,Pos:=Vector2(0,0)):
+	func _init(Text:String,HoverState:=hover_set.ALWAYS,Type:=text_types.TILE,Pos:=Vector2(0,0)):
+		text_type = Type
 		text = Text
 		hover_state = HoverState
+		text_type = Type
 		super(Pos)
 		load_display()
 	
 	func load_display():
 		display = Label.new()
-		display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		display.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		display.text = text
-		display.add_theme_font_size_override("font_size", int(500/display.get_minimum_size().x))
-		display.add_theme_color_override("font_color", Color.WHITE)
-		pos.y -= 2
+		match text_type:
+			text_types.TILE:
+				display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				display.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				display.add_theme_font_size_override("font_size", int(500/display.get_minimum_size().x))
+				pos.y -= 4
+			text_types.SMALL:
+				display.add_theme_font_size_override("font_size", 10)
 		display.position = pos
-		if hover_state == hover_set.HOVERED: display.modulate.a = 0
+		if hover_state == hover_set.HOVERED or hover_state == hover_set.CLICKED:
+			display.modulate.a = 0
+			visible = false
+		else: visible = true
 
 class NumberModifier:
 	extends TextModifier
@@ -361,9 +397,9 @@ class NumberModifier:
 	
 	static func condition(): return true
 	
-	func _init(Num:int,HoverState:=hover_set.ALWAYS,Pos:=Vector2(0,0)):
+	func _init(Num:int,HoverState:=hover_set.ALWAYS,Type:=text_types.TILE,Pos:=Vector2(0,0)):
 		num = Num
-		super(str(Num),HoverState,Pos)
+		super(str(Num),HoverState,Type,Pos)
 	
 	func _load():
 		on_load()

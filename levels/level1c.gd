@@ -1,5 +1,5 @@
 extends "res://game.gd".Level
-static var levelName = "Begin"
+static var levelName = "look idk how to make good names ok?"
 static var levelIcon = "3Γ"
 
 func add_tiles():
