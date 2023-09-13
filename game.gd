@@ -3,6 +3,7 @@ extends Node
 var check
 var level
 var style
+var map
 
 func _ready():
 	randomize()
@@ -16,9 +17,14 @@ func load_level(toload):
 		check = MenuTile.new(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")},false)
 		add_child(check)
 		check.modifiers.text._load()
-	if toload == "map": check.fadeout()
-	else: check.fadein()
+	if !map:
+		map = MenuTile.new(128,464,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("M")},false)
+		add_child(map)
+		map.modifiers.text._load()
+	if toload == "map": check.fadeout(); map.fadeout()
+	else: check.fadein(); map.fadein()
 	check.pressed.connect(level.check)
+	map.pressed.connect(level.check.bind("map"))
 
 func get_level(): return level
 
@@ -31,6 +37,7 @@ class Level:
 	var vertices = {}
 	@onready var game = get_node("/root/game")
 	var changed_since_unhappy = true
+	var loading = true
 	
 	func _init(Style:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,text = Color.WHITE,}):
 		style = Style
@@ -43,6 +50,8 @@ class Level:
 			tile.check_connections()
 		for tile in tiles:
 			tile.load_modifiers()
+		await get_tree().create_timer(1.5).timeout
+		loading = false
 	
 	func get_level(): return self
 	
@@ -54,6 +63,8 @@ class Level:
 		add_child(tile)
 	
 	func check(forcelevel:=""):
+		if loading: return
+		loading = true
 		var okay = true
 		if forcelevel == "":
 			for tile in tiles:
@@ -67,9 +78,9 @@ class Level:
 			await get_tree().create_timer(1.2).timeout
 			await game.load_level(nextlevel)
 			queue_free()
-			
 		else:
 			changed_since_unhappy = false
+		loading = false
 	
 	class Rectangle:
 		var shape
