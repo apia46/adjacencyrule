@@ -1,6 +1,15 @@
 extends "res://game.gd".Level
-static var levelName = "the second level"
+static var levelName = "More numbers"
 static var levelIcon = "2Γ"
+static var prereq = "level1"
+static var theme = {
+	unmarked = Color.WEB_GRAY,
+	marked = Color.LIGHT_GRAY,
+	border = Color.DARK_GRAY,
+	forcedunmarked = Color.DIM_GRAY,
+	forcedmarked = Color.WHITE_SMOKE,
+	text = Color.WHITE,
+}
 
 func add_tiles():
 	nextlevel = "level1c"

@@ -2,23 +2,25 @@ extends Node
 
 var check
 var level
-var style
+var theme
 var map
+var levelsbeat = []
 
 func _ready():
 	randomize()
 	load_level("map")
 
 func load_level(toload):
-	level = load("res://levels/" + toload + ".gd").new()
-	style = level.style
+	level = load("res://levels/" + toload + ".gd").new(toload)
+	%levelinfo.text = level.levelIcon + " - " + level.levelName
+	theme = level.theme
 	add_child(level)
 	if !check:
-		check = MenuTile.new(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")},false)
+		check = MenuTile.new(MenuTile.menuTiles.CHECK)
 		add_child(check)
 		check.modifiers.text._load()
 	if !map:
-		map = MenuTile.new(128,464,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("M")},false)
+		map = MenuTile.new(MenuTile.menuTiles.MAP)
 		add_child(map)
 		map.modifiers.text._load()
 	if toload == "map": check.fadeout(); map.fadeout()
@@ -32,15 +34,16 @@ class Level:
 	extends Node
 	
 	var nextlevel = ""
-	var style = {}
 	var tiles = []
 	var vertices = {}
 	@onready var game = get_node("/root/game")
 	var changed_since_unhappy = true
 	var loading = true
+	var levelID
 	
-	func _init(Style:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,text = Color.WHITE,}):
-		style = Style
+	func _init(levelid,theme:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,text = Color.WHITE,}):
+		levelID = levelid
+		theme = theme
 	
 	func _ready():
 		add_tiles()
@@ -70,6 +73,8 @@ class Level:
 			for tile in tiles:
 				for modifier in tile.modifiers:
 					if !tile.modifiers[modifier].check(): okay = false
+			if okay: game.levelsbeat.append(levelID)
+			print(game.levelsbeat)
 		else: nextlevel = forcelevel
 		if okay:
 			game.check.pressed.disconnect(self.check)
@@ -97,7 +102,7 @@ class Level:
 		var marked = false
 		var modifiers = {}
 		var polygon:PackedVector2Array
-		var style
+		var theme
 		var tween
 		var pos
 		var addedpos = Vector2(0,0)
@@ -150,9 +155,9 @@ class Level:
 		
 		func _ready():
 			# may not be consistent? idk
-			load_style()
+			load_theme()
 			id = len(level.tiles)-1
-			border.default_color = style.border
+			border.default_color = theme.border
 			self.mouse_entered.connect(set_hovered.bind(true))
 			self.mouse_exited.connect(set_hovered.bind(false))
 			if modifiers.has("forced"): marked = modifiers.forced.state == ForcedModifier.forced_state.MARKED
@@ -164,24 +169,24 @@ class Level:
 				await get_tree().create_timer(randf_range(0.3,0.6)).timeout
 				fadein()
 		
-		func fadein():
+		func fadein(to:=1.0):
 			if showing: return
 			var tweenstart = get_tree().create_tween().set_parallel()
 			tweenstart.tween_property(self, "pos:y", pos.y-500, 1).set_trans(Tween.TRANS_EXPO)
-			tweenstart.tween_property(self, "modulate:a", 1, 0.5).set_delay(0.5)
+			tweenstart.tween_property(self, "modulate:a", to, 0.5).set_delay(0.5)
 			showing = true
 			return tweenstart
 		
-		func fadeout():
+		func fadeout(to:=0.0):
 			if !showing: return
 			var tweenend = get_tree().create_tween().set_parallel()
 			tweenend.tween_property(self, "pos:y", pos.y+500, 1).set_trans(Tween.TRANS_EXPO)
-			tweenend.tween_property(self, "modulate:a", 0, 0.5)
+			tweenend.tween_property(self, "modulate:a", to, 0.5)
 			showing = false
 			return tweenend
 		
-		func load_style():
-			style = get_parent().style
+		func load_theme():
+			theme = get_parent().theme
 		
 		func _process(_delta):
 			# sin
@@ -212,11 +217,11 @@ class Level:
 		
 		func update_display():
 			if marked: 
-				if modifiers.has("forced"): display.color = style.forcedmarked
-				else: display.color = style.marked
+				if modifiers.has("forced"): display.color = theme.forcedmarked
+				else: display.color = theme.marked
 			else:
-				if modifiers.has("forced"): display.color = style.forcedunmarked
-				else: display.color = style.unmarked
+				if modifiers.has("forced"): display.color = theme.forcedunmarked
+				else: display.color = theme.unmarked
 		
 		func add_connections():
 			for vertex in shape:
@@ -240,10 +245,40 @@ class Level:
 			queue_free()
 
 class MenuTile:
+	# god what the fuck this is a mess it sticks around after the level stops ajkdhjfjsdfk
 	extends Level.Tile
 	
-	func load_style():
-		style = get_parent().level.style
+	var cleared = false
+	var type
+	var game
+	
+	enum menuTiles {
+		CHECK,
+		MAP,
+	}
+	
+	func load_theme():
+		theme = game.level.theme
+	
+	func _init(tile):
+		type = tile
+		match tile:
+			menuTiles.CHECK:
+				super(64,400,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("C")},false)
+			menuTiles.MAP:
+				super(128,464,PackedVector2Array([Vector2(64,0),Vector2(128,64),Vector2(64,128),Vector2(0,64)]),{text = TextModifier.new("M")},false)
+	
+	func _ready():
+		game = get_parent()
+		super()
+	
+	func fadein(to:=1.0):
+		level = game.level
+		cleared = level.levelID in game.levelsbeat
+		if type == menuTiles.CHECK:
+			marked = cleared
+			update_display()
+		super(to)
 	
 	func _input(Event):
 		if Event.is_action_pressed("LClick"):
@@ -258,17 +293,38 @@ class MapTile:
 	var levelName
 	var levelIcon
 	var select = false
+	var cleared = false
+	var unlocked = false
+	var prereq
 	
 	func _init(X:int,Y:int,Shape:PackedVector2Array,Level:String,Modifiers:={}):
 		levelID = Level
 		var reference = load("res://levels/" + levelID + ".gd")
 		levelName = reference.levelName
 		levelIcon = reference.levelIcon
+		prereq = reference.prereq
 		Modifiers.levelicon = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
 		Modifiers.levelname = TextModifier.new(levelName,TextModifier.hover_set.CLICKED,TextModifier.text_types.SMALL,Vector2(70,-5))
+		Modifiers.forced = ForcedModifier.new(ForcedModifier.forced_state.UNMARKED)
 		super(X,Y,Shape,Modifiers)
 		pressed.connect(modifiers.levelname.clicked)
 		hover.connect(self.hovercheck)
+	
+	func fadein(to:=1.0):
+		if unlocked: super(to)
+		else: super(to*0.3)
+	
+	func _ready():
+		super()
+		if !prereq or prereq in level.game.levelsbeat: unlocked = true
+		# create it no matter what, then delete (i hate this so bad)
+		if unlocked:
+			modifiers.erase("forced")
+			update_display()
+		if levelID in level.game.levelsbeat:
+			marked = true
+			update_display()
+			cleared = true
 	
 	func hovercheck(): if !hovered: select = false
 	
@@ -280,9 +336,10 @@ class MapTile:
 					level.check(levelID)
 				else:
 					pressed.emit()
-					marked = !marked
-					update_display()
-					level.changed_since_unhappy = true
+					if cleared:
+						marked = !marked
+						update_display()
+						level.changed_since_unhappy = true
 					select = true
 
 
@@ -371,7 +428,7 @@ class TextModifier:
 			visible = true
 	
 	func on_load():
-		display.add_theme_color_override("font_color", level.style.text)
+		display.add_theme_color_override("font_color", level.theme.text)
 		display.size = tile.box.size
 		display.z_index = 1
 	
