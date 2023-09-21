@@ -41,7 +41,23 @@ class Level:
 	var loading = true
 	var levelID
 	
-	func _init(levelid,theme:={unmarked = Color.WEB_GRAY,marked = Color.LIGHT_GRAY,border = Color.DARK_GRAY,forcedunmarked = Color.DIM_GRAY,forcedmarked = Color.WHITE_SMOKE,text = Color.WHITE,}):
+	const theme1 = {
+	unmarked = Color8(140,140,140),
+	marked = Color8(70,70,70),
+	border = Color8(170,170,170),
+	forcedunmarked = Color8(216,216,216),
+	forcedmarked = Color8(40,40,40),
+	text = Color.BLACK,}
+	
+	const theme2 = {
+	unmarked = Color8(64,64,64),
+	marked = Color8(180,180,180),
+	border = Color8(30,30,30),
+	forcedunmarked = Color8(40,40,40),
+	forcedmarked = Color8(222,222,222),
+	text = Color.WHITE,}
+	
+	func _init(levelid,theme:=theme1):
 		levelID = levelid
 		theme = theme
 	
@@ -74,14 +90,15 @@ class Level:
 				for modifier in tile.modifiers:
 					if !tile.modifiers[modifier].check(): okay = false
 			if okay: game.levelsbeat.append(levelID)
-			print(game.levelsbeat)
 		else: nextlevel = forcelevel
 		if okay:
-			game.check.pressed.disconnect(self.check)
-			for t in tiles:
-				t.next_level()
-			await get_tree().create_timer(1.2).timeout
-			await game.load_level(nextlevel)
+			#hmm
+			if game.check.is_connected("pressed", self.check):
+				game.check.pressed.disconnect(self.check)
+				for t in tiles:
+					t.next_level()
+				await get_tree().create_timer(1.2).timeout
+				await game.load_level(nextlevel)
 			queue_free()
 		else:
 			changed_since_unhappy = false
@@ -157,7 +174,6 @@ class Level:
 			# may not be consistent? idk
 			load_theme()
 			id = len(level.tiles)-1
-			border.default_color = theme.border
 			self.mouse_entered.connect(set_hovered.bind(true))
 			self.mouse_exited.connect(set_hovered.bind(false))
 			if modifiers.has("forced"): marked = modifiers.forced.state == ForcedModifier.forced_state.MARKED
@@ -186,7 +202,11 @@ class Level:
 			return tweenend
 		
 		func load_theme():
-			theme = get_parent().theme
+			get_theme()
+			border.default_color = theme.border
+			for modifier in modifiers: modifiers[modifier].load_theme()
+		
+		func get_theme(): theme = get_parent().theme
 		
 		func _process(_delta):
 			# sin
@@ -257,8 +277,7 @@ class MenuTile:
 		MAP,
 	}
 	
-	func load_theme():
-		theme = game.level.theme
+	func get_theme(): theme = game.level.theme
 	
 	func _init(tile):
 		type = tile
@@ -274,10 +293,11 @@ class MenuTile:
 	
 	func fadein(to:=1.0):
 		level = game.level
+		load_theme()
 		cleared = level.levelID in game.levelsbeat
 		if type == menuTiles.CHECK:
 			marked = cleared
-			update_display()
+		update_display()
 		super(to)
 	
 	func _input(Event):
@@ -296,6 +316,10 @@ class MapTile:
 	var cleared = false
 	var unlocked = false
 	var prereq
+	var reftheme
+	
+	func get_theme():
+		theme = reftheme
 	
 	func _init(X:int,Y:int,Shape:PackedVector2Array,Level:String,Modifiers:={}):
 		levelID = Level
@@ -306,6 +330,7 @@ class MapTile:
 		Modifiers.levelicon = TextModifier.new(levelIcon,TextModifier.hover_set.HOVERED)
 		Modifiers.levelname = TextModifier.new(levelName,TextModifier.hover_set.CLICKED,TextModifier.text_types.SMALL,Vector2(70,-5))
 		Modifiers.forced = ForcedModifier.new(ForcedModifier.forced_state.UNMARKED)
+		reftheme = reference.theme
 		super(X,Y,Shape,Modifiers)
 		pressed.connect(modifiers.levelname.clicked)
 		hover.connect(self.hovercheck)
@@ -359,6 +384,8 @@ class Modifier:
 	func _init(Pos:=Vector2(0,0)):
 		pos = Pos
 	
+	func load_theme(): pass
+	
 	func _process(_delta):
 		if !condition(): return
 		if !display: return
@@ -405,6 +432,9 @@ class TextModifier:
 		SMALL,
 	}
 	
+	func load_theme():
+		display.add_theme_color_override("font_color", tile.theme.text)
+	
 	func _ready():
 		tile.add_child.call_deferred(display)
 		tile.hover.connect(self.hover)
@@ -418,19 +448,18 @@ class TextModifier:
 			var tween = get_tree().create_tween()
 			tween.tween_property(display, "modulate:a", 0, 0.2)
 			visible = false
-	
+	#what
 	func _load():
 		on_load()
+	
+	func on_load():
+		display.size = tile.box.size
+		display.z_index = 1
 	
 	func clicked():
 		if hover_state == hover_set.CLICKED and !visible:
 			display.modulate.a = 1
 			visible = true
-	
-	func on_load():
-		display.add_theme_color_override("font_color", level.theme.text)
-		display.size = tile.box.size
-		display.z_index = 1
 	
 	func _init(Text:String,HoverState:=hover_set.ALWAYS,Type:=text_types.TILE,Pos:=Vector2(0,0)):
 		text_type = Type

@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://dl2tvv31oy4u2"]
+
+[ext_resource type="Script" path="res://game.gd" id="1_ovcbr"]
+
+[node name="game" type="Node"]
+script = ExtResource("1_ovcbr")
+
+[node name="levelinfo" type="RichTextLabel" parent="."]
+unique_name_in_owner = true
+offset_left = 5.0
+offset_top = 3.0
+offset_right = 389.0
+offset_bottom = 29.0
+text = "XX - level name here"

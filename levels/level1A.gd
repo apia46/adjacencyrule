@@ -2,14 +2,7 @@ extends "res://game.gd".Level
 static var levelName = "Missing"
 static var levelIcon = "AΓ"
 static var prereq = "level1e"
-static var theme = {
-	unmarked = Color.LIGHT_GRAY,
-	marked = Color.WEB_GRAY,
-	border = Color.DARK_GRAY,
-	forcedunmarked = Color.WHITE_SMOKE,
-	forcedmarked = Color.DIM_GRAY,
-	text = Color.BLACK,
-}
+static var theme = Level.theme1
 
 const optimisation = [[-2,-1,0,-2],[-2,-1,3,-1],[-1,1,-2,-1],[2,1,-1,-2]]
 

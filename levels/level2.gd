@@ -1,11 +1,11 @@
 extends "res://game.gd".Level
-static var levelName = "EIGHT"
-static var levelIcon = "1Γ"
+static var levelName = "SEVEN"
+static var levelIcon = "1β"
 static var prereq
-static var theme = Level.theme1
+static var theme = Level.theme2
 
 func add_tiles():
-	nextlevel = "level1b"
+	nextlevel = "map"
 	for x in range(3):
 		for y in range(3):
 			if x == 1 and y == 1:
