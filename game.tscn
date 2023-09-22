@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://game.gd" id="1_ovcbr"]
 
-[node name="game" type="Node"]
+[node name="game" type="Node2D"]
 script = ExtResource("1_ovcbr")
 
 [node name="levelinfo" type="RichTextLabel" parent="."]
@@ -11,4 +11,45 @@ offset_left = 5.0
 offset_top = 3.0
 offset_right = 389.0
 offset_bottom = 29.0
+theme_override_colors/default_color = Color(0, 0, 0, 1)
 text = "XX - level name here"
+
+[node name="background" type="Polygon2D" parent="."]
+unique_name_in_owner = true
+z_index = -1
+color = Color(0.870588, 0.870588, 0.870588, 1)
+polygon = PackedVector2Array(-10000, -10000, 11152, -10000, 11152, 10648, -10000, 10648)
+
+[node name="menu" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="title" type="RichTextLabel" parent="menu"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 24.4
+anchor_top = 2.45
+anchor_right = 24.4
+anchor_bottom = 2.45
+offset_left = -638.0
+offset_top = 10.0
+offset_right = 65.9999
+offset_bottom = 145.0
+grow_horizontal = 0
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/normal_font_size = 73
+text = "The Adjacency Rule"
+text_direction = 2
+
+[node name="Label" type="Label" parent="menu"]
+layout_mode = 0
+offset_left = 734.0
+offset_top = 210.0
+offset_right = 1038.0
+offset_bottom = 248.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 25
+text = "A puzzie game of all time"

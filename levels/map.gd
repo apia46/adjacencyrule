@@ -2,7 +2,13 @@ extends "res://game.gd".Level
 static var levelName = "Map"
 static var levelIcon = "M"
 static var prereq # hmm
-static var theme = Level.theme1
+static var theme = {
+	unmarked = Color8(64,64,64),
+	marked = Color8(160,160,160),
+	border = Color8(30,30,30),
+	forcedunmarked = Color8(64,64,64),
+	forcedmarked = Color8(200,200,200),
+	text = Color.WHITE,}
 
 func add_tiles():
 	add(game.MapTile.new(32, 32, Rectangle.new(64,64).shape, "level1"))
@@ -12,3 +18,5 @@ func add_tiles():
 	add(game.MapTile.new(32, 32+64*4, Rectangle.new(64,64).shape, "level1e"))
 	add(game.MapTile.new(32+64, 32+64*4, Rectangle.new(64,64).shape, "level1A"))
 	add(game.MapTile.new(32, 32+64*5, Rectangle.new(64,64).shape, "level2"))
+	add(game.MapTile.new(32, 32+64*6, Rectangle.new(64,64).shape, "level2b"))
+	add(game.MapTile.new(32, 32+64*7, Rectangle.new(64,64).shape, "level2c"))
