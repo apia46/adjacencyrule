@@ -3,6 +3,8 @@ static var levelName = "Missing Tiles"
 static var levelIcon = "5Γ"
 static var prereq = "level1d"
 static var theme = Level.theme1
+static var scrollable = false
+static var voidmark = false
 
 const optimisation = [[-2,-1,0,-2],[-2,-1,3,-1],[-1,1,-2,-1],[2,1,-1,-2]]
 

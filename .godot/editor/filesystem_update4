@@ -1,2 +1,17 @@
 res://game.tscn
+res://levels/level2c.gd
+res://levels/level2d.gd
+res://levels/level2e.gd
+res://levels/map.gd
 res://game.gd
+res://levels/level2f.gd
+res://levels/level1.gd
+res://levels/level1A.gd
+res://levels/level1b2.gd
+res://levels/level1b.gd
+res://levels/level1c.gd
+res://levels/level1d.gd
+res://levels/level1e.gd
+res://levels/level2.gd
+res://levels/level2b.gd
+res://levels/level2g.gd

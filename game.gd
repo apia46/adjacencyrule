@@ -53,6 +53,8 @@ class Level:
 	var changed_since_unhappy = false
 	var loading = true
 	var levelID
+	var grabbed
+	var grabbed_offset
 	
 	const theme1 = {
 	unmarked = Color8(120,120,120),
@@ -117,13 +119,27 @@ class Level:
 			changed_since_unhappy = false
 		loading = false
 	
+	# https://ask.godotengine.org/41946/drag-and-drop-a-sprite-is-there-a-built-in-function-for-a-node
+	func _input(event):
+		if self.scrollable and event.is_action_pressed("LClick"):
+			grabbed = event.pressed
+			grabbed_offset = position - get_global_mouse_position()
+	
+	func _process(delta):
+		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and grabbed: position = get_global_mouse_position() + grabbed_offset
+	
 	# for convenience
 	static func c(x,y,cx,cy): return x == cx and y == cy
 	
 	class Rectangle:
 		var shape
 		
-		func _init(X:int,Y:int): shape = PackedVector2Array([Vector2(0,0),Vector2(X,0),Vector2(X,Y),Vector2(0,Y)])
+		func _init(X:int,Y:int,b:=64):
+			shape = PackedVector2Array()
+			for i in range(X/b): shape.append(Vector2(i*b,0))
+			for i in range(Y/b): shape.append(Vector2(X,i*b))
+			for i in range(X/b): shape.append(Vector2(X-i*b,Y))
+			for i in range(Y/b): shape.append(Vector2(0,Y-i*b))
 	
 	class Tile:
 		extends Area2D

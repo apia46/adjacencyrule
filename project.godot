@@ -18,6 +18,7 @@ config/icon="res://images/icon.png"
 [debug]
 
 gdscript/warnings/static_called_on_instance=0
+gdscript/warnings/integer_division=0
 
 [filesystem]
 

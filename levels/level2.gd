@@ -3,6 +3,8 @@ static var levelName = "SEVEN"
 static var levelIcon = "1β"
 static var prereq# = "level1e"
 static var theme = Level.theme2
+static var scrollable = false
+static var voidmark = false
 
 func add_tiles():
 	nextlevel = "level2b"
