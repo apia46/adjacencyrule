@@ -7,6 +7,7 @@ script = ExtResource("1_ovcbr")
 
 [node name="levelinfo" type="RichTextLabel" parent="."]
 unique_name_in_owner = true
+z_index = 2
 offset_left = 5.0
 offset_top = 3.0
 offset_right = 389.0

@@ -5,6 +5,7 @@ static var prereq = "level1e"
 static var theme = Level.theme1
 static var scrollable = false
 static var voidmark = false
+static var map = "map"
 
 const optimisation = [[1,3,3,3],[4,7,6,4],[2,5,5,4],[2,5,3,3]]
 

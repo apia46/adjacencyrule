@@ -13,6 +13,7 @@ static var scrollable = true
 static var voidmark = false
 
 func add_tiles():
+	add(game.MapTile.new(32, -400, Rectangle.new(64,64).shape, "happy"))
 	add(game.MapTile.new(32, 32, Rectangle.new(64,64).shape, "level1"))
 	add(game.MapTile.new(32, 32+64, Rectangle.new(64,64).shape, "level1b"))
 	add(game.MapTile.new(32-64, 32+64+32, Rectangle.new(64,64).shape, "level1b2"))

@@ -5,6 +5,7 @@ static var prereq = "level2d"
 static var theme = Level.theme2
 static var scrollable = false
 static var voidmark = false
+static var map = "map"
 
 func add_tiles():
 	nextlevel = "level2f"

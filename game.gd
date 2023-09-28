@@ -6,6 +6,7 @@ var theme
 var map
 var levelsbeat = []
 var menuscreen = true
+var mapanyway = true
 
 func _ready():
 	randomize()
@@ -37,9 +38,9 @@ func load_level(toload):
 	if toload == "map": check.fadeout(); map.fadeout()
 	else:
 		check.fadein()
-		if !menuscreen: map.fadein()
+		if !menuscreen or mapanyway: map.fadein()
 	check.pressed.connect(level.check)
-	map.pressed.connect(level.check.bind("map"))
+	map.pressed.connect(level.check.bind("MAP"))
 
 func get_level(): return level
 
@@ -105,7 +106,9 @@ class Level:
 				for modifier in tile.modifiers:
 					if !tile.modifiers[modifier].check(): okay = false
 			if okay: game.levelsbeat.append(levelID)
-		else: nextlevel = forcelevel
+		else:
+			if forcelevel == "MAP": nextlevel = self.map
+			else: nextlevel = forcelevel
 		if okay:
 			#hmm
 			if game.check.is_connected("pressed", self.check):
@@ -125,7 +128,7 @@ class Level:
 			grabbed = event.pressed
 			grabbed_offset = position - get_global_mouse_position()
 	
-	func _process(delta):
+	func _process(_delta):
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and grabbed: position = get_global_mouse_position() + grabbed_offset
 	
 	# for convenience
@@ -338,6 +341,7 @@ class MenuTile:
 			if !hovered: return
 			if "forced" in modifiers: return
 			pressed.emit()
+			if level.game.menuscreen: level.game.close_menu()
 
 class MapTile:
 	extends Level.Tile
@@ -505,8 +509,8 @@ class TextModifier:
 			text_types.TILE:
 				display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				display.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-				display.add_theme_font_size_override("font_size", int(500/display.get_minimum_size().x))
-				pos.y -= 4
+				display.add_theme_font_size_override("font_size", int(50/text.length()))
+				pos.y -= 4/text.length()
 			text_types.SMALL:
 				display.add_theme_font_size_override("font_size", 10)
 		display.position = pos
